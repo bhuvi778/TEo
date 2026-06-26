@@ -10,12 +10,16 @@ import adminRoutes from './routes/adminRoutes.js'
 
 const app = express()
 const port = process.env.PORT || 5000
+const allowedOrigins = getAllowedOrigins()
 
 await connectDB()
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+      return callback(new Error(`CORS blocked for origin: ${origin}`))
+    },
     credentials: true,
   }),
 )
@@ -43,3 +47,12 @@ app.use((error, req, res, next) => {
 app.listen(port, () => {
   console.log(`TEOMax backend running on http://localhost:${port}`)
 })
+
+function getAllowedOrigins() {
+  const configured = process.env.CLIENT_URLS || process.env.CLIENT_URL
+  const fallback = 'http://localhost:5173,http://localhost:5175'
+  return (configured || fallback)
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+}
